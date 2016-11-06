@@ -152,6 +152,11 @@ namespace RavenDB.AspNetCore.Identity
             public string NormalizedValue { get; set; }
         }
 
+        public IdentityUser()
+        {
+
+        }
+
         public IdentityUser(string userName, string email) 
             : this(userName)
         {
@@ -220,7 +225,7 @@ namespace RavenDB.AspNetCore.Identity
 
         private static string GenerateId(string userName)
         {
-            return userName.ToLower();
+            return "IdentityUsers/" + userName.ToLower();
         }
     }
 }

@@ -28,27 +28,13 @@ namespace RavenDB.AspNetCore.Identity
         private static object _initializationTarget;
         private readonly ILogger _logger;
 
-
         private readonly Func<IAsyncDocumentSession> getSessionFunc;
         private IAsyncDocumentSession _session;
 
-        public UserStore(IAsyncDocumentSession database, ILoggerFactory loggerFactory)
+        public UserStore(IAsyncDocumentSession session, ILoggerFactory loggerFactory)
         {
             _session = session;
             _logger = loggerFactory.CreateLogger(GetType().Name);
-        }
-
-        private IAsyncDocumentSession session
-        {
-            get
-            {
-                if (_session == null)
-                {
-                    _session = getSessionFunc();
-                    _session.Advanced.DocumentStore.Conventions.RegisterIdConvention<IdentityUser>((dbname, commands, user) => "IdentityUsers/" + user.Id);
-                }
-                return _session;
-            }
         }
 
         public async Task<IdentityResult> CreateAsync(TUser user, CancellationToken cancellationToken)
@@ -60,7 +46,7 @@ namespace RavenDB.AspNetCore.Identity
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            await session.StoreAsync(user, cancellationToken);
+            await _session.StoreAsync(user, cancellationToken);
             return IdentityResult.Success;
         }
 
@@ -73,7 +59,7 @@ namespace RavenDB.AspNetCore.Identity
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            session.Delete(user);
+            _session.Delete(user);
 
             return Task.FromResult(IdentityResult.Success);
         }
@@ -86,7 +72,7 @@ namespace RavenDB.AspNetCore.Identity
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            return session.LoadAsync<TUser>(userId, cancellationToken);
+            return _session.LoadAsync<TUser>(userId, cancellationToken);
         }
 
         public Task<TUser> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
@@ -98,10 +84,11 @@ namespace RavenDB.AspNetCore.Identity
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var results = session.Query<TUser>()
-                .Where(a => a.UserName == normalizedUserName);
+            var user = _session.LoadAsync<TUser>(
+                "IdentityUsers/" + normalizedUserName, 
+                cancellationToken);
 
-            return results.FirstOrDefaultAsync(cancellationToken);
+            return user;
         }
 
         public Task<string> GetNormalizedUserNameAsync(TUser user, CancellationToken cancellationToken)
@@ -153,19 +140,7 @@ namespace RavenDB.AspNetCore.Identity
 
         public Task SetUserNameAsync(TUser user, string userName, CancellationToken cancellationToken)
         {
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            if (userName == null)
-            {
-                throw new ArgumentNullException(nameof(userName));
-            }
-
-            user.UserName = userName;
-
-            return Task.FromResult(0);
+            throw new NotSupportedException("Changing a UserName is not supported");
         }
 
         public async Task<IdentityResult> UpdateAsync(TUser user, CancellationToken cancellationToken)
@@ -175,7 +150,7 @@ namespace RavenDB.AspNetCore.Identity
                 throw new ArgumentNullException(nameof(user));
             }
 
-            await session.StoreAsync(user, cancellationToken);
+            await _session.StoreAsync(user, cancellationToken);
 
             return IdentityResult.Success;
         }
@@ -256,7 +231,7 @@ namespace RavenDB.AspNetCore.Identity
                 throw new ArgumentNullException(nameof(providerKey));
             }
 
-            return session.Query<TUser>()
+            return _session.Query<TUser>()
                 .Where(a => a.Logins.Any(b => b.LoginProvider == loginProvider && b.ProviderKey == providerKey))
                 .FirstOrDefaultAsync();
         }
@@ -343,7 +318,7 @@ namespace RavenDB.AspNetCore.Identity
                 throw new ArgumentNullException(nameof(claim));
             }
 
-            return session.Query<TUser>()
+            return _session.Query<TUser>()
                 .Where(a => a.Claims.Any(b => b.ClaimType == claim.Type && b.ClaimValue == claim.Value))
                 .ToListAsync();
         }
@@ -509,7 +484,7 @@ namespace RavenDB.AspNetCore.Identity
                 throw new ArgumentNullException(nameof(normalizedEmail));
             }
 
-            return session.Query<TUser>()
+            return _session.Query<TUser>()
                 .Where(a => a.Email.NormalizedValue == normalizedEmail)
                 .FirstOrDefaultAsync(cancellationToken);
         }
@@ -689,6 +664,7 @@ namespace RavenDB.AspNetCore.Identity
 
         public void Dispose()
         {
+
         }
 
 
@@ -758,7 +734,7 @@ namespace RavenDB.AspNetCore.Identity
                 throw new ArgumentNullException(nameof(roleName));
             }
 
-            return session.Query<TUser>()
+            return _session.Query<TUser>()
                 .Where(a => a.Roles.Contains(roleName))
                 .ToListAsync();
         }

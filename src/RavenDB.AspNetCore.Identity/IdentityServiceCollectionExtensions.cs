@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.DataProtection;
+using Raven.Client;
 
 namespace RavenDB.AspNetCore.Identity
 {
@@ -27,10 +28,10 @@ namespace RavenDB.AspNetCore.Identity
         /// <returns>An <see cref="IdentityBuilder"/> for creating and configuring the identity system.</returns>
         public static IdentityBuilder AddRavenDBIdentity<TUser, TRole>(
             this IServiceCollection services)
-            where TUser : class
+            where TUser : IdentityUser
             where TRole : class
         {
-            return services.AddIdentity<TUser, TRole>(setupAction: null);
+            return services.AddRavenDBIdentity<TUser, TRole>(null);
         }
 
         /// <summary>
@@ -44,19 +45,21 @@ namespace RavenDB.AspNetCore.Identity
         public static IdentityBuilder AddRavenDBIdentity<TUser, TRole>(
             this IServiceCollection services,
             Action<IdentityOptions> setupAction)
-            where TUser : class
+            where TUser : IdentityUser
             where TRole : class
         {
-            services.AddSingleton<IUserStore<IdentityUser>>(provider =>
+            services.AddScoped<IUserStore<TUser>>(provider =>
             {
                 var loggerFactory = provider.GetService<ILoggerFactory>();
-                return new UserStore<IdentityUser>(null, loggerFactory);
+                var session = provider.GetService<IAsyncDocumentSession>();
+                return new UserStore<TUser>(session, loggerFactory);
             });
 
             services.Configure<IdentityOptions>(options =>
             {
                 options.Cookies.ApplicationCookie.AuthenticationScheme = "ApplicationCookie";
                 options.Lockout.AllowedForNewUsers = true;
+                options.Cookies.ApplicationCookie.AutomaticChallenge = false;
             });
 
             // Services used by identity
