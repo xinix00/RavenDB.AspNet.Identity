@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.DataProtection;
 using Raven.Client;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace RavenDB.AspNetCore.Identity
 {
@@ -59,7 +60,15 @@ namespace RavenDB.AspNetCore.Identity
             {
                 options.Cookies.ApplicationCookie.AuthenticationScheme = "ApplicationCookie";
                 options.Lockout.AllowedForNewUsers = true;
-                options.Cookies.ApplicationCookie.AutomaticChallenge = false;
+                options.Cookies.ApplicationCookie.AutomaticChallenge = true;
+                options.Cookies.ApplicationCookie.Events = new CookieAuthenticationEvents()
+                {
+                    OnRedirectToLogin = ctx =>
+                    {
+                        ctx.Response.StatusCode = 401;
+                        return Task.FromResult<object>(null);
+                    }
+                };
             });
 
             // Services used by identity
