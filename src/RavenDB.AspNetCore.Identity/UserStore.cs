@@ -23,12 +23,8 @@ namespace RavenDB.AspNetCore.Identity
         IUserRoleStore<TUser>
         where TUser : IdentityUser
     {
-        private static bool _initialized = false;
-        private static object _initializationLock = new object();
-        private static object _initializationTarget;
         private readonly ILogger _logger;
 
-        private readonly Func<IAsyncDocumentSession> getSessionFunc;
         private IAsyncDocumentSession _session;
 
         public UserStore(IAsyncDocumentSession session, ILoggerFactory loggerFactory)
