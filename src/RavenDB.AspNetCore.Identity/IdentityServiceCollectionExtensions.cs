@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
-using Raven.Client;
+using Raven.NewClient.Client.Document;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace RavenDB.AspNetCore.Identity

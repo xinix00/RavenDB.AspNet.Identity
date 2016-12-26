@@ -6,7 +6,8 @@ using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
-using Raven.Client;
+using Raven.NewClient.Client.Document;
+using Raven.NewClient.Client;
 
 namespace RavenDB.AspNetCore.Identity
 {
